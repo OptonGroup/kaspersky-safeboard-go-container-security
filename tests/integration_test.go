@@ -33,7 +33,7 @@ func TestIntegration_EnqueueAndProcess(t *testing.T) {
 	// Enqueue N tasks via HTTP and collect IDs
 	ids := make([]string, 0, N)
 	for i := 0; i < N; i++ {
-		b := []byte(fmt.Sprintf(`{"payload":{"n":%d},"max_retries":0}`, i))
+		b := []byte(fmt.Sprintf(`{"id":"t-%d","payload":"px","max_retries":0}`, i))
 		req := httptest.NewRequest(http.MethodPost, "/enqueue", bytes.NewReader(b))
 		rr := httptest.NewRecorder()
 		handler.ServeHTTP(rr, req)

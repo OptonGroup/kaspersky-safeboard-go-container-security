@@ -20,7 +20,7 @@ func TestStatusAndMetrics(t *testing.T) {
 	h := httpserver.NewHandlerWithDeps(store, ch, &accepting)
 
 	// enqueue one task
-	req := httptest.NewRequest(http.MethodPost, "/enqueue", bytes.NewReader([]byte(`{"payload": {}}`)))
+	req := httptest.NewRequest(http.MethodPost, "/enqueue", bytes.NewReader([]byte(`{"id":"m1","payload":"p"}`)))
 	rr := httptest.NewRecorder()
 	h.ServeHTTP(rr, req)
 	if rr.Code != http.StatusAccepted {

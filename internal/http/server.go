@@ -39,8 +39,9 @@ func NewHandlerWithDeps(store *q.Store, ch chan<- q.Task, accepting *atomic.Bool
 	})
 
 	type enqueueRequest struct {
-		Payload    json.RawMessage `json:"payload"`
-		MaxRetries int             `json:"max_retries"`
+		ID         string `json:"id"`
+		Payload    string `json:"payload"`
+		MaxRetries int    `json:"max_retries"`
 	}
 	type enqueueResponse struct {
 		ID     string       `json:"id"`
@@ -63,14 +64,19 @@ func NewHandlerWithDeps(store *q.Store, ch chan<- q.Task, accepting *atomic.Bool
 			http.Error(w, "invalid JSON", http.StatusBadRequest)
 			return
 		}
-		if len(req.Payload) == 0 {
-			http.Error(w, "payload required", http.StatusBadRequest)
+		if strings.TrimSpace(req.ID) == "" || strings.TrimSpace(req.Payload) == "" {
+			http.Error(w, "id and payload required", http.StatusBadRequest)
 			return
 		}
 		if req.MaxRetries < 0 {
 			req.MaxRetries = 0
 		}
-		task := q.NewTask(req.Payload, req.MaxRetries)
+		// check duplicate id
+		if _, exists := store.Get(req.ID); exists {
+			http.Error(w, "duplicate id", http.StatusBadRequest)
+			return
+		}
+		task := q.NewTaskWithID(req.ID, []byte(req.Payload), req.MaxRetries)
 		select {
 		case ch <- task:
 			store.Save(task)

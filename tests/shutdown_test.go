@@ -27,7 +27,7 @@ func TestGracefulShutdown_StopAcceptingAndWorkersFinish(t *testing.T) {
 	q.StartWorkers(ctx, &wg, store, ch, 2, 42)
 
 	// Enqueue one task
-	req := httptest.NewRequest(http.MethodPost, "/enqueue", bytes.NewReader([]byte(`{"payload": {}}`)))
+	req := httptest.NewRequest(http.MethodPost, "/enqueue", bytes.NewReader([]byte(`{"id":"g1","payload":"p"}`)))
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	if rr.Code != http.StatusAccepted {
@@ -38,7 +38,7 @@ func TestGracefulShutdown_StopAcceptingAndWorkersFinish(t *testing.T) {
 	accepting.Store(false)
 
 	// New enqueues must be rejected
-	req2 := httptest.NewRequest(http.MethodPost, "/enqueue", bytes.NewReader([]byte(`{"payload": {}}`)))
+	req2 := httptest.NewRequest(http.MethodPost, "/enqueue", bytes.NewReader([]byte(`{"id":"g2","payload":"p"}`)))
 	rr2 := httptest.NewRecorder()
 	handler.ServeHTTP(rr2, req2)
 	if rr2.Code != http.StatusServiceUnavailable {

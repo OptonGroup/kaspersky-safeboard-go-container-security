@@ -44,6 +44,23 @@ func NewTask(payload json.RawMessage, maxRetries int) Task {
 	}
 }
 
+// NewTaskWithID constructs a new queued task with provided ID and timestamps.
+func NewTaskWithID(id string, payload []byte, maxRetries int) Task {
+	if maxRetries < 0 {
+		maxRetries = 0
+	}
+	now := time.Now().UTC()
+	return Task{
+		ID:         id,
+		Payload:    json.RawMessage(payload),
+		MaxRetries: maxRetries,
+		Attempt:    0,
+		Status:     StatusQueued,
+		CreatedAt:  now,
+		UpdatedAt:  now,
+	}
+}
+
 func generateID() string {
 	var b [16]byte
 	_, _ = rand.Read(b[:])

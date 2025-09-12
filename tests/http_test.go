@@ -41,7 +41,7 @@ func TestMethodNotAllowed(t *testing.T) {
 
 func TestEnqueueStub(t *testing.T) {
 	handler := httpserver.NewHandler()
-	req := httptest.NewRequest(http.MethodPost, "/enqueue", bytes.NewReader([]byte(`{"payload":{}}`)))
+	req := httptest.NewRequest(http.MethodPost, "/enqueue", bytes.NewReader([]byte(`{"id":"stub","payload":"p"}`)))
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	if rr.Code != http.StatusAccepted {
