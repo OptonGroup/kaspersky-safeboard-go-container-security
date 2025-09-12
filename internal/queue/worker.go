@@ -11,7 +11,7 @@ import (
 // Each worker marks task as running, simulates processing for 100-500ms, and finishes with
 // either done or failed status, with approximately 20% failure probability.
 // To keep tests deterministic, pass a seed; each worker derives its own independent RNG from this seed.
-func StartWorkers(ctx context.Context, wg *sync.WaitGroup, store *Store, queueCh <-chan Task, numWorkers int, seed int64) {
+func StartWorkers(ctx context.Context, wg *sync.WaitGroup, store *Store, queueCh chan Task, numWorkers int, seed int64) {
 	if numWorkers <= 0 {
 		return
 	}
@@ -45,7 +45,20 @@ func StartWorkers(ctx context.Context, wg *sync.WaitGroup, store *Store, queueCh
 
 					// 20% failure probability
 					if rng.Intn(100) < 20 {
-						// failed without retries at this step
+						// retry if attempts left
+						if t.Attempt < t.MaxRetries {
+							nextAttempt := t.Attempt + 1
+							backoff := BackoffDelay(BackoffBase, nextAttempt, JitterMax, rng)
+							select {
+							case <-ctx.Done():
+								return
+							case <-time.After(backoff):
+							}
+							// re-enqueue with incremented attempt
+							t.Attempt = nextAttempt
+							_ = TryEnqueueWithContext(ctx, queueCh, t, 10*time.Millisecond)
+							continue
+						}
 						store.UpdateStatus(t.ID, StatusFailed, t.Attempt)
 						continue
 					}
