@@ -46,7 +46,8 @@ func main() {
 	<-sigCh
 	// Begin shutdown
 	log.Println("Shutting down...")
-	cancel()
+	// stop accepting new tasks immediately
+	accepting.Store(false)
 
 	// Allow some time for graceful stop of HTTP server
 	shutdownCtx, shutdownCancel := context.WithTimeout(ctx, 5*time.Second)
@@ -54,6 +55,9 @@ func main() {
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		log.Printf("HTTP shutdown error: %v", err)
 	}
+
+	// cancel workers and retries
+	cancel()
 
 	wg.Wait()
 	log.Println("Stopped")
