@@ -24,6 +24,7 @@ func Load() Config {
 		QueueSize: DefaultQueueSize,
 	}
 
+	
 	if v := os.Getenv("WORKERS"); v != "" {
 		if n, err := strconv.Atoi(v); err == nil && n > 0 {
 			cfg.Workers = n
