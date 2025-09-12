@@ -6,18 +6,27 @@ import (
 	"os"
 	"os/signal"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
 	"github.com/optongroup/kaspersky-safeboard-go-container-security/internal/config"
 	httpserver "github.com/optongroup/kaspersky-safeboard-go-container-security/internal/http"
+	q "github.com/optongroup/kaspersky-safeboard-go-container-security/internal/queue"
 )
 
 func main() {
 	cfg := config.Load()
 	_ = cfg // will be used in next steps
 
-	srv := httpserver.New(":8080")
+	// Initialize queue and store
+	store := q.NewStore()
+	queueCh := make(chan q.Task, cfg.QueueSize)
+	var accepting atomic.Bool
+	accepting.Store(true)
+
+	handler := httpserver.NewHandlerWithDeps(store, queueCh, &accepting)
+	srv := httpserver.NewWithHandler(":8080", handler)
 
 	var wg sync.WaitGroup
 	ctx, cancel := context.WithCancel(context.Background())
