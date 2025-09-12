@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -73,6 +74,7 @@ func NewHandlerWithDeps(store *q.Store, ch chan<- q.Task, accepting *atomic.Bool
 		select {
 		case ch <- task:
 			store.Save(task)
+			log.Printf("enqueued task id=%s", task.ID)
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusAccepted)
 			_ = json.NewEncoder(w).Encode(enqueueResponse{ID: task.ID, Status: task.Status})
@@ -80,6 +82,37 @@ func NewHandlerWithDeps(store *q.Store, ch chan<- q.Task, accepting *atomic.Bool
 			w.WriteHeader(http.StatusServiceUnavailable)
 		}
 	})
+
+	// GET /status/{id}
+	mux.HandleFunc("/status/", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		id := strings.TrimPrefix(r.URL.Path, "/status/")
+		if id == "" {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		if t, ok := store.Get(id); ok {
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(t)
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
+	})
+
+	// GET /metrics (simple JSON counters)
+	mux.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		m := store.GetMetrics()
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(m)
+	})
+
 	return mux
 }
 
