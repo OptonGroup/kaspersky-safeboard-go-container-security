@@ -35,6 +35,10 @@ func main() {
 	// Start HTTP server
 	srv.Start()
 
+	// Start workers
+	seed := time.Now().UnixNano()
+	q.StartWorkers(ctx, &wg, store, queueCh, cfg.Workers, seed)
+
 	// Handle OS signals for graceful shutdown
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
